@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake | Homework 2a</title>
+  <style>
+    :root {
+      --ink: #17221e;
+      --muted: #61716a;
+      --paper: #f4f1e8;
+      --panel: #fffdf7;
+      --line: #d7d5c9;
+      --green: #2f7d5c;
+      --green-dark: #21543f;
+      --yellow: #f0c35b;
+      --red: #c6534d;
+      --shadow: 0 18px 50px rgba(35, 54, 45, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(240, 195, 91, 0.22), transparent 30%),
+        radial-gradient(circle at 90% 85%, rgba(47, 125, 92, 0.12), transparent 34%),
+        var(--paper);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    main { width: min(100%, 560px); }
+
+    .intro {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 16px;
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--green);
+      font: 700 0.74rem/1.2 Arial, sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 0; font-size: clamp(2.5rem, 9vw, 4.6rem); line-height: 0.9; letter-spacing: -0.045em; }
+
+    .intro p:last-child {
+      max-width: 180px;
+      margin: 0 0 2px;
+      color: var(--muted);
+      font: 0.9rem/1.4 Arial, sans-serif;
+      text-align: right;
+    }
+
+    .game-card {
+      padding: clamp(16px, 4vw, 26px);
+      border: 1px solid rgba(215, 213, 201, 0.85);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      padding: 10px 14px;
+      border-left: 3px solid var(--yellow);
+      background: #f8f5ec;
+    }
+
+    .stat span { display: block; color: var(--muted); font: 700 0.68rem/1.2 Arial, sans-serif; letter-spacing: 0.11em; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 2px; font-size: 1.65rem; line-height: 1; }
+
+    .board-wrap { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; background: #e5eadb; }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .message {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(23, 34, 30, 0.78);
+      color: #fffdf7;
+      text-align: center;
+    }
+
+    .message[hidden] { display: none; }
+    .message h2 { margin: 0 0 6px; font-size: clamp(1.8rem, 7vw, 2.6rem); }
+    .message p { margin: 0 0 16px; font: 0.9rem/1.4 Arial, sans-serif; }
+
+    button {
+      border: 0;
+      border-radius: 4px;
+      color: #fffdf7;
+      background: var(--green);
+      font: 700 0.82rem/1 Arial, sans-serif;
+      cursor: pointer;
+      transition: background 140ms ease, transform 140ms ease;
+    }
+
+    button:hover { background: var(--green-dark); }
+    button:active { transform: translateY(1px); }
+    button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+
+    .message button { padding: 12px 18px; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .status { margin: 0; color: var(--muted); font: 0.8rem/1.4 Arial, sans-serif; }
+    .toolbar > button { padding: 11px 14px; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(2, 48px);
+      justify-content: center;
+      gap: 6px;
+      margin-top: 18px;
+    }
+
+    .controls button { font-size: 1.2rem; }
+    .controls button:nth-child(1) { grid-column: 2; }
+    .controls button:nth-child(2) { grid-column: 1; grid-row: 2; }
+    .controls button:nth-child(3) { grid-column: 2; grid-row: 2; }
+    .controls button:nth-child(4) { grid-column: 3; grid-row: 2; }
+
+    .help { margin: 18px 0 0; color: var(--muted); font: 0.74rem/1.5 Arial, sans-serif; text-align: center; }
+
+    @media (max-width: 480px) {
+      body { padding: 14px; }
+      .intro { align-items: start; flex-direction: column; gap: 8px; }
+      .intro p:last-child { max-width: none; text-align: left; }
+      .game-card { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <div>
+        <p class="eyebrow">Homework 2a</p>
+        <h1>Snake</h1>
+      </div>
+      <p>Eat the fruit. Grow longer. Stay on the board.</p>
+    </header>
+
+    <section class="game-card" aria-label="Snake game">
+      <div class="stats" aria-live="polite">
+        <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+        <div class="stat"><span>Best</span><strong id="best">0</strong></div>
+      </div>
+
+      <div class="board-wrap">
+        <canvas id="game" width="400" height="400" aria-label="Snake game board"></canvas>
+        <div class="message" id="message" hidden>
+          <div>
+            <h2 id="message-title">Game over</h2>
+            <p id="message-copy">Your snake ran into trouble.</p>
+            <button id="message-button" type="button">Play again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <p class="status" id="status">Use the arrow keys or WASD to begin.</p>
+        <button id="pause" type="button">Pause</button>
+      </div>
+
+      <div class="controls" aria-label="Touch controls">
+        <button type="button" data-direction="up" aria-label="Move up">&#8593;</button>
+        <button type="button" data-direction="left" aria-label="Move left">&#8592;</button>
+        <button type="button" data-direction="down" aria-label="Move down">&#8595;</button>
+        <button type="button" data-direction="right" aria-label="Move right">&#8594;</button>
+      </div>
+      <p class="help">Arrow keys / WASD to move &middot; Space to pause</p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const context = canvas.getContext("2d");
+      const scoreElement = document.getElementById("score");
+      const bestElement = document.getElementById("best");
+      const statusElement = document.getElementById("status");
+      const pauseButton = document.getElementById("pause");
+      const message = document.getElementById("message");
+      const messageTitle = document.getElementById("message-title");
+      const messageCopy = document.getElementById("message-copy");
+      const messageButton = document.getElementById("message-button");
+      const gridSize = 20;
+      const tileSize = canvas.width / gridSize;
+      const speed = 115;
+      let snake;
+      let food;
+      let direction;
+      let queuedDirection;
+      let score;
+      let best = Number(localStorage.getItem("snake-best") || 0);
+      let timer;
+      let isRunning = false;
+      let isPaused = false;
+
+      bestElement.textContent = best;
+
+      function reset() {
+        snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+        direction = { x: 1, y: 0 };
+        queuedDirection = direction;
+        score = 0;
+        isRunning = true;
+        isPaused = false;
+        scoreElement.textContent = score;
+        statusElement.textContent = "Find the fruit and keep moving.";
+        pauseButton.textContent = "Pause";
+        message.hidden = true;
+        placeFood();
+        clearInterval(timer);
+        timer = setInterval(step, speed);
+        draw();
+      }
+
+      function placeFood() {
+        do {
+          food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
+        } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
+      }
+
+      function setDirection(next) {
+        if (!isRunning || isPaused) return;
+        if (next.x + direction.x === 0 && next.y + direction.y === 0) return;
+        queuedDirection = next;
+      }
+
+      function step() {
+        if (!isRunning || isPaused) return;
+        direction = queuedDirection;
+        const nextHead = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+        const head = {
+          x: (nextHead.x + gridSize) % gridSize,
+          y: (nextHead.y + gridSize) % gridSize
+        };
+        const hitSnake = snake.some(segment => segment.x === head.x && segment.y === head.y);
+        if (hitSnake) {
+          endGame();
+          return;
+        }
+        snake.unshift(head);
+        if (head.x === food.x && head.y === food.y) {
+          score += 1;
+          scoreElement.textContent = score;
+          if (score > best) {
+            best = score;
+            bestElement.textContent = best;
+            localStorage.setItem("snake-best", best);
+          }
+          placeFood();
+        } else {
+          snake.pop();
+        }
+        draw();
+      }
+
+      function endGame() {
+        isRunning = false;
+        clearInterval(timer);
+        statusElement.textContent = "That run is over.";
+        messageTitle.textContent = "Game over";
+        messageCopy.textContent = `Final score: ${score}. Ready for another run?`;
+        messageButton.textContent = "Play again";
+        message.hidden = false;
+        draw();
+      }
+
+      function togglePause() {
+        if (!isRunning) return;
+        isPaused = !isPaused;
+        pauseButton.textContent = isPaused ? "Resume" : "Pause";
+        statusElement.textContent = isPaused ? "Paused. Take your time." : "Find the fruit and keep moving.";
+      }
+
+      function draw() {
+        context.fillStyle = "#e5eadb";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.strokeStyle = "rgba(47, 125, 92, 0.08)";
+        context.lineWidth = 1;
+        for (let line = 1; line < gridSize; line += 1) {
+          const position = line * tileSize;
+          context.beginPath();
+          context.moveTo(position, 0);
+          context.lineTo(position, canvas.height);
+          context.moveTo(0, position);
+          context.lineTo(canvas.width, position);
+          context.stroke();
+        }
+        drawTile(food, "#c6534d", 4);
+        snake.forEach((segment, index) => drawTile(segment, index === 0 ? "#21543f" : "#2f7d5c", 3));
+      }
+
+      function drawTile(tile, color, inset) {
+        context.fillStyle = color;
+        const position = tile.x * tileSize + inset;
+        const size = tileSize - inset * 2;
+        context.beginPath();
+        context.roundRect(position, tile.y * tileSize + inset, size, size, 4);
+        context.fill();
+      }
+
+      const directions = {
+        ArrowUp: { x: 0, y: -1 }, w: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 }, s: { x: 0, y: 1 },
+        ArrowLeft: { x: -1, y: 0 }, a: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 }, d: { x: 1, y: 0 }
+      };
+
+      document.addEventListener("keydown", event => {
+        if (directions[event.key]) {
+          event.preventDefault();
+          setDirection(directions[event.key]);
+        } else if (event.key === " ") {
+          event.preventDefault();
+          if (isRunning) {
+            togglePause();
+          } else {
+            reset();
+          }
+        } else if (event.key === "Enter" && !isRunning) {
+          reset();
+        }
+      });
+
+      document.querySelectorAll("[data-direction]").forEach(button => {
+        button.addEventListener("click", () => setDirection(directions[button.dataset.direction === "up" ? "ArrowUp" : button.dataset.direction === "down" ? "ArrowDown" : button.dataset.direction === "left" ? "ArrowLeft" : "ArrowRight"]));
+      });
+      pauseButton.addEventListener("click", togglePause);
+      messageButton.addEventListener("click", reset);
+      reset();
+    })();
+  </script>
+</body>
+</html>
